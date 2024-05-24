@@ -3,11 +3,13 @@ from aqt.utils import ask_user, showInfo
 from aqt.qt import *
 from .flow_layout import FlowLayout
 from .tag import ClosableTag
-
+from .checkable_combobox import CheckableComboBox
 class MainWindow(QWidget):
     selected_deck = ""
     bad_tags = set()
     good_tags = set()
+    bad_tag_widgets = []
+    good_tag_widgets = []
     tags = []
     decks = []
     bad_all_checked = False
@@ -31,10 +33,7 @@ class MainWindow(QWidget):
         self.groupbox_bad = QGroupBox("2. Suspend cards that has tag:")
         self.form_layout_bad = QFormLayout(self)
         self.checkbox_bad_all = QCheckBox(self)
-        self.combobox_bad = QComboBox(self)
-        self.completer_bad = QCompleter(self.tags)
-        self.completer_bad.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.combobox_bad.setCompleter(self.completer_bad)
+        self.combobox_bad = CheckableComboBox(self)
         self.scroll_area_bad = QScrollArea(self)
         self.scroll_area_bad_widget = QWidget(self.scroll_area_bad)
         self.h_layout_bad_selected = FlowLayout(self.scroll_area_bad_widget)
@@ -43,10 +42,7 @@ class MainWindow(QWidget):
         self.groupbox_good = QGroupBox("3. Then Unsuspend cards that has tag:")
         self.form_layout_good = QFormLayout(self)
         self.checkbox_good_all = QCheckBox(self)
-        self.combobox_good = QComboBox(self)
-        self.completer_good = QCompleter(self.tags)
-        self.completer_good.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.combobox_good.setCompleter(self.completer_good)
+        self.combobox_good = CheckableComboBox(self)
         self.scroll_area_good = QScrollArea(self)
         self.scroll_area_good_widget = QWidget(self.scroll_area_good)
         self.h_layout_good_selected = FlowLayout(self.scroll_area_good_widget)
@@ -101,10 +97,10 @@ class MainWindow(QWidget):
         self.on_deck_selected()
 
         self.combobox_bad.addItems(self.tags)
-        self.combobox_bad.currentIndexChanged.connect(self.on_bad_tag_selected)
+        self.combobox_bad.changed.connect(self.on_bad_tag_selected)
 
         self.combobox_good.addItems(self.tags)
-        self.combobox_good.currentIndexChanged.connect(self.on_good_tag_selected)
+        self.combobox_good.changed.connect(self.on_good_tag_selected)
 
     def on_deck_selected(self):
         label = self.combobox_deck.currentText()
@@ -120,37 +116,46 @@ class MainWindow(QWidget):
         self.good_all_checked = self.checkbox_good_all.isChecked()
         self.update_count(self.good_all_checked, self.good_tags, self.label_good_total)
 
-    def on_tag_selected(self, combobox, tag_set, layout, is_all_checked, count_layout):
-        label = combobox.currentText()
-
+    def on_tag_selected(self, widget_list, tag_set, layout, is_all_checked, count_layout, label):
         if label not in tag_set:
             tag = ClosableTag(label)
             tag.closed.connect(lambda: self.on_tag_closed(is_all_checked, tag_set, label, count_layout))
+            widget_list.append(tag)
             layout.addWidget(tag)
             tag_set.add(label)
             self.update_count(is_all_checked, tag_set, count_layout)
+        else:
+            for widget in widget_list:
+                if widget.tag == label:
+                    widget.close_tag()
+                    widget_list.remove(widget)
+                    break
+
 
     def on_tag_closed(self, is_all_checked, tag_set, label, count_layout):
         tag_set.remove(label)
         self.update_count(is_all_checked, tag_set, count_layout)
         pass
 
-    def on_good_tag_selected(self):
+    def on_good_tag_selected(self, text):
         self.on_tag_selected(
-            combobox=self.combobox_good,
+            widget_list=self.good_tag_widgets,
             tag_set=self.good_tags,
             layout=self.h_layout_good_selected,
             is_all_checked=self.good_all_checked,
-            count_layout=self.label_good_total
+            count_layout=self.label_good_total,
+            label=text
         )
 
-    def on_bad_tag_selected(self):
+
+    def on_bad_tag_selected(self, text):
         self.on_tag_selected(
-            combobox=self.combobox_bad,
+            widget_list=self.bad_tag_widgets,
             tag_set=self.bad_tags,
             layout=self.h_layout_bad_selected,
             is_all_checked=self.bad_all_checked,
-            count_layout=self.label_bad_total
+            count_layout=self.label_bad_total,
+            label=text
         )
 
     def update_count(self, is_all_checked, tags, label_widget):
@@ -174,9 +179,14 @@ class MainWindow(QWidget):
             query += self.get_or_query(tags)
         return query
 
+    # def escape_special_chars(self, input_string):
+    #     special_chars = r'[\^\$\.\|\?\*\+\(\)\{\}\[\]\\\_]'
+    #     return re.sub(special_chars, lambda match: f'\\{match.group(0)}', input_string)
+
     def get_or_query(self, tags):
         if not len(tags):
             return ""
+        # return "({})".format(" OR ".join([f"tag:{self.escape_special_chars(tag)}" for tag in tags]))
         return "({})".format(" OR ".join([f"tag:{tag}" for tag in tags]))
 
     def confirm(self):
