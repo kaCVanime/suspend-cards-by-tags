@@ -23,12 +23,12 @@ class MainWindow(QWidget):
 
         self.v_layout = QVBoxLayout(self)
 
-        self.groupbox_deck = QGroupBox("Choose Deck")
+        self.groupbox_deck = QGroupBox("1. Choose Deck")
         self.groupbox_deck.setFixedHeight(80)
         self.form_layout_deck = QFormLayout(self)
         self.combobox_deck = QComboBox(self)
 
-        self.groupbox_bad = QGroupBox("Suspend cards that has tag:")
+        self.groupbox_bad = QGroupBox("2. Suspend cards that has tag:")
         self.form_layout_bad = QFormLayout(self)
         self.checkbox_bad_all = QCheckBox(self)
         self.combobox_bad = QComboBox(self)
@@ -40,7 +40,7 @@ class MainWindow(QWidget):
         self.h_layout_bad_selected = FlowLayout(self.scroll_area_bad_widget)
         self.label_bad_total = QLabel("0")
 
-        self.groupbox_good = QGroupBox("Then Unsuspend cards that has tag:")
+        self.groupbox_good = QGroupBox("3. Then Unsuspend cards that has tag:")
         self.form_layout_good = QFormLayout(self)
         self.checkbox_good_all = QCheckBox(self)
         self.combobox_good = QComboBox(self)
@@ -78,7 +78,6 @@ class MainWindow(QWidget):
         self.scroll_area_bad.setWidget(self.scroll_area_bad_widget)
         self.scroll_area_bad.setWidgetResizable(True)
 
-
         self.groupbox_good.setLayout(self.form_layout_good)
         self.form_layout_good.addRow("Unsuspend all tagged cards", self.checkbox_good_all)
         self.form_layout_good.addRow("select tag", self.combobox_good)
@@ -88,7 +87,6 @@ class MainWindow(QWidget):
         self.scroll_area_good_widget.setContentsMargins(5, 5, 5, 5)
         self.scroll_area_good.setWidget(self.scroll_area_good_widget)
         self.scroll_area_good.setWidgetResizable(True)
-
 
         self.setLayout(self.v_layout)
 
@@ -122,23 +120,38 @@ class MainWindow(QWidget):
         self.good_all_checked = self.checkbox_good_all.isChecked()
         self.update_count(self.good_all_checked, self.good_tags, self.label_good_total)
 
-    def on_tag_selected(self, combobox, tag_set, layout):
+    def on_tag_selected(self, combobox, tag_set, layout, is_all_checked, count_layout):
         label = combobox.currentText()
 
         if label not in tag_set:
             tag = ClosableTag(label)
-            tag.closed.connect(lambda: tag_set.remove(label))
+            tag.closed.connect(lambda: self.on_tag_closed(is_all_checked, tag_set, label, count_layout))
             layout.addWidget(tag)
             tag_set.add(label)
+            self.update_count(is_all_checked, tag_set, count_layout)
 
+    def on_tag_closed(self, is_all_checked, tag_set, label, count_layout):
+        tag_set.remove(label)
+        self.update_count(is_all_checked, tag_set, count_layout)
+        pass
 
     def on_good_tag_selected(self):
-        self.on_tag_selected(self.combobox_good, self.good_tags, self.h_layout_good_selected)
-        self.update_count(self.good_all_checked, self.good_tags, self.label_good_total)
+        self.on_tag_selected(
+            combobox=self.combobox_good,
+            tag_set=self.good_tags,
+            layout=self.h_layout_good_selected,
+            is_all_checked=self.good_all_checked,
+            count_layout=self.label_good_total
+        )
 
     def on_bad_tag_selected(self):
-        self.on_tag_selected(self.combobox_bad, self.bad_tags, self.h_layout_bad_selected)
-        self.update_count(self.bad_all_checked, self.bad_tags, self.label_bad_total)
+        self.on_tag_selected(
+            combobox=self.combobox_bad,
+            tag_set=self.bad_tags,
+            layout=self.h_layout_bad_selected,
+            is_all_checked=self.bad_all_checked,
+            count_layout=self.label_bad_total
+        )
 
     def update_count(self, is_all_checked, tags, label_widget):
         if not is_all_checked and not len(tags):
@@ -180,9 +193,7 @@ class MainWindow(QWidget):
             self.suspend(to_suspend_cids)
             self.unsuspend(unsuspend_cids)
 
-
             showInfo("Done")
-
 
     def suspend(self, cids, suspend=True):
         for id in cids:
@@ -204,11 +215,9 @@ class MainWindow(QWidget):
     def unsuspend(self, cids):
         self.suspend(cids, False)
 
-
     def is_suspended(self, id):
         card = mw.col.get_card(id)
         return card.queue == -1
-
 
 
 def show_window():
