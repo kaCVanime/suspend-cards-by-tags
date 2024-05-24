@@ -58,12 +58,14 @@ class CheckableComboBox(QComboBox):
                 index = self.view().indexAt(event.pos())
                 item = self.model().item(index.row())
 
-                self.changed.emit(item.text())
+
 
                 if item.checkState() == Qt.CheckState.Checked:
                     item.setCheckState(Qt.CheckState.Unchecked)
                 else:
                     item.setCheckState(Qt.CheckState.Checked)
+
+                self.changed.emit(item.text())
                 return True
         return False
 
