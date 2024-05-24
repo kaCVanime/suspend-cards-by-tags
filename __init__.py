@@ -116,10 +116,10 @@ class MainWindow(QWidget):
         self.good_all_checked = self.checkbox_good_all.isChecked()
         self.update_count(self.good_all_checked, self.good_tags, self.label_good_total)
 
-    def on_tag_selected(self, widget_list, tag_set, layout, is_all_checked, count_layout, label):
+    def on_tag_selected(self, widget_list, tag_set, layout, is_all_checked, count_layout, label, combobox):
         if label not in tag_set:
             tag = ClosableTag(label)
-            tag.closed.connect(lambda: self.on_tag_closed(is_all_checked, tag_set, label, count_layout))
+            tag.closed.connect(lambda: self.on_tag_closed(is_all_checked, tag_set, label, count_layout, combobox))
             widget_list.append(tag)
             layout.addWidget(tag)
             tag_set.add(label)
@@ -132,10 +132,10 @@ class MainWindow(QWidget):
                     break
 
 
-    def on_tag_closed(self, is_all_checked, tag_set, label, count_layout):
+    def on_tag_closed(self, is_all_checked, tag_set, label, count_layout, combobox):
         tag_set.remove(label)
+        combobox.uncheck(label)
         self.update_count(is_all_checked, tag_set, count_layout)
-        pass
 
     def on_good_tag_selected(self, text):
         self.on_tag_selected(
@@ -144,7 +144,8 @@ class MainWindow(QWidget):
             layout=self.h_layout_good_selected,
             is_all_checked=self.good_all_checked,
             count_layout=self.label_good_total,
-            label=text
+            label=text,
+            combobox=self.combobox_good
         )
 
 
@@ -155,7 +156,8 @@ class MainWindow(QWidget):
             layout=self.h_layout_bad_selected,
             is_all_checked=self.bad_all_checked,
             count_layout=self.label_bad_total,
-            label=text
+            label=text,
+            combobox=self.combobox_bad
         )
 
     def update_count(self, is_all_checked, tags, label_widget):
