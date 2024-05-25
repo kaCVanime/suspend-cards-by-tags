@@ -5,16 +5,6 @@ from .flow_layout import FlowLayout
 from .tag import ClosableTag
 from .checkable_combobox import CheckableComboBox
 class MainWindow(QWidget):
-    selected_deck = ""
-    bad_tags = set()
-    good_tags = set()
-    bad_tag_widgets = []
-    good_tag_widgets = []
-    tags = []
-    decks = []
-    bad_all_checked = False
-    good_all_checked = False
-
     def __init__(self, decks, tags):
         super(MainWindow, self).__init__()
 
@@ -22,6 +12,13 @@ class MainWindow(QWidget):
 
         self.decks = decks
         self.tags = tags
+        self.selected_deck = ""
+        self.bad_tags = set()
+        self.good_tags = set()
+        self.bad_tag_widgets = []
+        self.good_tag_widgets = []
+        self.bad_all_checked = False
+        self.good_all_checked = False
 
         self.v_layout = QVBoxLayout(self)
 
